@@ -1,7 +1,10 @@
 package com.example.earthquakereport;
 
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.LoaderManager;
@@ -11,6 +14,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +22,8 @@ import java.util.List;
 public class EarthquakeActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<List<Earthquake>> {
 
     public static final String LOG_TAG = EarthquakeActivity.class.getName();
+
+    private TextView mEmptyStateTextView;
 
     private static final String USGS_REQUEST_URL =
             "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&orderby=time&minmag=6&limit=10";
@@ -37,6 +43,10 @@ public class EarthquakeActivity extends AppCompatActivity implements LoaderManag
 
         // 在布局中查找 {@link ListView} 的引用
         ListView earthquakeListView = (ListView) findViewById(R.id.list);
+
+        mEmptyStateTextView = (TextView) findViewById(R.id.empty_view);
+        earthquakeListView.setEmptyView(mEmptyStateTextView);
+
         // 创建新适配器，将空地震列表作为输入
         mAdapter = new EarthquakeAdapter(this, new ArrayList<Earthquake>());
         // 在 {@link ListView} 上设置适配器
@@ -60,13 +70,25 @@ public class EarthquakeActivity extends AppCompatActivity implements LoaderManag
                 startActivity(websiteIntent);
             }
         });
-        // 引用 LoaderManager，以便与 loader 进行交互。
-        LoaderManager loaderManager = getSupportLoaderManager();
-        // 初始化 loader。传递上面定义的整数 ID 常量并为为捆绑
-        // 传递 null。为 LoaderCallbacks 参数（由于
-        // 此活动实现了 LoaderCallbacks 接口而有效）传递此活动。
-        Log.i(LOG_TAG, "TEST:calling initLoader()...");
-        loaderManager.initLoader(EARTHQUAKE_LOADER_ID, null,this );
+
+        ConnectivityManager connMgr = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+        if (networkInfo != null && networkInfo.isConnected()){
+            // 引用 LoaderManager，以便与 loader 进行交互。
+            LoaderManager loaderManager = getSupportLoaderManager();
+            // 初始化 loader。传递上面定义的整数 ID 常量并为为捆绑
+            // 传递 null。为 LoaderCallbacks 参数（由于
+            // 此活动实现了 LoaderCallbacks 接口而有效）传递此活动。
+            Log.i(LOG_TAG, "TEST:calling initLoader()...");
+            loaderManager.initLoader(EARTHQUAKE_LOADER_ID, null,this );
+        }else {
+            // 因数据已加载，隐藏加载指示符
+            View loadingIndicator = findViewById(R.id.loading_indicator);
+            loadingIndicator.setVisibility(View.GONE);
+
+            mEmptyStateTextView.setText(R.string.no_internet_connection);
+        }
+
 /**
  ArrayList<Earthquake> earthquakes = QueryUtils.extractEarthquakes();
  // 启动 AsyncTask 以获取地震数据
@@ -83,9 +105,17 @@ public class EarthquakeActivity extends AppCompatActivity implements LoaderManag
         return new EarthquakeLoader(this,USGS_REQUEST_URL);
         //       return new EarthquakeLoader(this, USGS_REQUEST_URL);
     }
+
     @Override
     public void onLoadFinished(Loader<List<Earthquake>> loader, List<Earthquake> earthquakes) {
         Log.i(LOG_TAG, "TEST:onLoaderFinished called ...");
+        // 因数据已加载，隐藏加载指示符
+        View loadingIndicator = findViewById(R.id.loading_indicator);
+        loadingIndicator.setVisibility(View.GONE);
+
+        // 将空状态文本设置为显示“未发现地震。(No earthquakes found.)”
+        mEmptyStateTextView.setText(R.string.no_earthquakes);
+
         // 清除之前地震数据的适配器
         mAdapter.clear();
 
@@ -95,6 +125,7 @@ public class EarthquakeActivity extends AppCompatActivity implements LoaderManag
             mAdapter.addAll(earthquakes);
         }
     }
+
     @Override
     public void onLoaderReset(Loader<List<Earthquake>> loader) {
         Log.i(LOG_TAG, "onLoaderReset called ...");
