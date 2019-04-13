@@ -1,14 +1,11 @@
 package com.example.earthquakereport;
 
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.drawable.GradientDrawable;
-import android.net.Uri;
 import android.support.v4.content.ContextCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
@@ -18,13 +15,15 @@ import java.util.Date;
 import java.util.List;
 
 public class EarthquakeAdapter extends ArrayAdapter<Earthquake> {
-    String primaryLocation;
-    String locationOffset;
+
     private static final String LOCATION_SEPARATOR = " of ";
 
     public EarthquakeAdapter (Context context, List<Earthquake> earthquakeList){
         super(context,0,earthquakeList);
     }
+
+    String primaryLocation;
+    String locationOffset;
 
     public View getView(int position, View convertView, ViewGroup parent){
         // 检查是否已经有可以重用的列表项视图（称为 convertView），
